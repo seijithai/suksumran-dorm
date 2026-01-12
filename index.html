@@ -6,24 +6,19 @@
     <title>ระบบจัดการหอพักบ้านสุขสำราญ</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/vue@2.7.14/dist/vue.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;700&display=swap');
         body { font-family: 'Sarabun', sans-serif; background-color: #f3f4f6; }
         
-        /* Print Style สำหรับ PDF */
+        /* CSS สำหรับการพิมพ์โดยเฉพาะ ให้เหมือนแบบฟอร์ม */
         @media print {
-            /* ซ่อนทุกอย่างใน Body */
-            body * {
-                visibility: hidden;
+            @page { margin: 0.5cm; size: A4 portrait; }
+            body * { visibility: hidden; }
+            #printArea, #printArea * { 
+                visibility: visible !important; 
+                display: block !important;
             }
-            
-            /* บังคับให้พื้นที่พิมพ์ แสดงผลขึ้นมา และมองเห็นได้ */
-            #printArea, #printArea * {
-                visibility: visible !important;
-                display: block !important; /* บรรทัดนี้สำคัญมาก เพื่อแก้ class hidden */
-            }
-            
-            /* จัดตำแหน่งให้พอดีกระดาษ */
             #printArea {
                 position: absolute;
                 left: 0;
@@ -32,11 +27,29 @@
                 margin: 0;
                 padding: 0;
                 background-color: white;
+                font-size: 14px; /* ปรับขนาดตัวอักษรให้พอดี */
+                color: black;
             }
-            
-            /* ซ่อนปุ่มต่างๆ หรือส่วนที่ไม่ต้องการ */
+            /* บังคับให้แสดงเส้นตาราง */
+            table, th, td {
+                border: 1px solid black !important;
+                border-collapse: collapse !important;
+            }
+            /* ซ่อน elements ที่ไม่จำเป็น */
             .no-print { display: none !important; }
+            
+            /* จัด layout Flexbox ในโหมดพิมพ์ */
+            .print-flex { display: flex !important; width: 100%; }
+            .print-w-half { width: 50% !important; }
+            .print-text-right { text-align: right !important; }
+            .print-text-center { text-align: center !important; }
+            .print-mt-4 { margin-top: 1rem !important; }
+            .print-p-2 { padding: 0.5rem !important; }
         }
+        
+        /* Custom Table Styles */
+        .invoice-table th { background-color: #f0f0f0; padding: 5px; text-align: center; font-weight: bold; }
+        .invoice-table td { padding: 5px; vertical-align: top; }
     </style>
 </head>
 <body>
@@ -45,7 +58,7 @@
 
 <div id="app" class="container mx-auto p-4">
     
-    <nav class="bg-blue-600 p-4 rounded-lg shadow-lg mb-6 text-white flex justify-between items-center">
+    <nav class="bg-blue-600 p-4 rounded-lg shadow-lg mb-6 text-white flex justify-between items-center no-print">
         <h1 class="text-2xl font-bold">🏠 ห้องพักบ้านสุขสำราญ</h1>
         <div>
             <button @click="view = 'form'" :class="view==='form'?'bg-blue-800':''" class="px-4 py-2 rounded hover:bg-blue-700">บันทึกข้อมูล</button>
@@ -53,9 +66,8 @@
         </div>
     </nav>
 
-    <div v-if="view === 'form'" class="bg-white p-6 rounded-lg shadow-md">
-        <h2 class="text-xl font-bold mb-4 border-b pb-2">📝 บันทึกค่าเช่า (แก้ไขตัวเลขได้ทุกช่อง)</h2>
-        
+    <div v-if="view === 'form'" class="bg-white p-6 rounded-lg shadow-md no-print">
+        <h2 class="text-xl font-bold mb-4 border-b pb-2">📝 บันทึกค่าเช่า</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
                 <label class="block text-sm font-bold mb-2">เลือกห้อง</label>
@@ -64,7 +76,7 @@
                 </select>
             </div>
             <div>
-                <label class="block text-sm font-bold mb-2">ชื่อผู้เช่า (แก้ไขได้)</label>
+                <label class="block text-sm font-bold mb-2">ชื่อผู้เช่า</label>
                 <input v-model="form.tenant" type="text" class="w-full border p-2 rounded bg-yellow-50">
             </div>
             <div>
@@ -84,76 +96,43 @@
                 </div>
             </div>
         </div>
-
         <hr class="my-4">
-
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="bg-blue-50 p-4 rounded border border-blue-200">
-                <h3 class="font-bold text-blue-800 mb-2">💧 ค่าน้ำ (ปกติ 30 บ./หน่วย)</h3>
+                <h3 class="font-bold text-blue-800 mb-2">💧 ค่าน้ำ (30 บ./หน่วย)</h3>
                 <div class="flex gap-2 mb-2">
-                    <div class="w-1/2">
-                        <label class="text-xs">เลขก่อน</label>
-                        <input v-model.number="form.waterPrev" @input="calcWater" type="number" class="w-full border p-2 rounded text-gray-500">
-                    </div>
-                    <div class="w-1/2">
-                        <label class="text-xs">เลขครั้งนี้</label>
-                        <input v-model.number="form.waterCurr" @input="calcWater" type="number" class="w-full border p-2 rounded bg-white">
-                    </div>
+                    <div class="w-1/2"><label class="text-xs">เลขก่อน</label><input v-model.number="form.waterPrev" @input="calcWater" type="number" class="w-full border p-2 rounded text-gray-500"></div>
+                    <div class="w-1/2"><label class="text-xs">เลขครั้งนี้</label><input v-model.number="form.waterCurr" @input="calcWater" type="number" class="w-full border p-2 rounded bg-white"></div>
                 </div>
-                <div class="flex items-center justify-between mt-2">
-                    <span class="text-sm">เป็นเงิน:</span>
-                    <input v-model.number="form.waterTotal" type="number" class="border p-2 rounded w-32 text-right font-bold text-blue-800 bg-white">
-                </div>
+                <div class="flex items-center justify-between mt-2"><span class="text-sm">เป็นเงิน:</span><input v-model.number="form.waterTotal" type="number" class="border p-2 rounded w-32 text-right font-bold text-blue-800 bg-white"></div>
             </div>
-
             <div class="bg-yellow-50 p-4 rounded border border-yellow-200">
-                <h3 class="font-bold text-yellow-800 mb-2">⚡ ค่าไฟ (ปกติ 7 บ./หน่วย)</h3>
+                <h3 class="font-bold text-yellow-800 mb-2">⚡ ค่าไฟ (7 บ./หน่วย)</h3>
                 <div class="flex gap-2 mb-2">
-                    <div class="w-1/2">
-                        <label class="text-xs">เลขก่อน</label>
-                        <input v-model.number="form.elecPrev" @input="calcElec" type="number" class="w-full border p-2 rounded text-gray-500">
-                    </div>
-                    <div class="w-1/2">
-                        <label class="text-xs">เลขครั้งนี้</label>
-                        <input v-model.number="form.elecCurr" @input="calcElec" type="number" class="w-full border p-2 rounded bg-white">
-                    </div>
+                    <div class="w-1/2"><label class="text-xs">เลขก่อน</label><input v-model.number="form.elecPrev" @input="calcElec" type="number" class="w-full border p-2 rounded text-gray-500"></div>
+                    <div class="w-1/2"><label class="text-xs">เลขครั้งนี้</label><input v-model.number="form.elecCurr" @input="calcElec" type="number" class="w-full border p-2 rounded bg-white"></div>
                 </div>
-                <div class="flex items-center justify-between mt-2">
-                    <span class="text-sm">เป็นเงิน:</span>
-                    <input v-model.number="form.elecTotal" type="number" class="border p-2 rounded w-32 text-right font-bold text-yellow-800 bg-white">
-                </div>
+                <div class="flex items-center justify-between mt-2"><span class="text-sm">เป็นเงิน:</span><input v-model.number="form.elecTotal" type="number" class="border p-2 rounded w-32 text-right font-bold text-yellow-800 bg-white"></div>
             </div>
         </div>
-
         <hr class="my-4">
-
         <h3 class="font-bold mb-2">💰 ค่าใช้จ่ายอื่นๆ / ค่าปรับ</h3>
         <div class="flex items-center gap-2 mb-3 bg-red-50 p-2 rounded">
-             <input type="checkbox" v-model="hasLateFee" @change="calcFine"> 
-             <label class="text-sm">มีค่าปรับล่าช้า</label>
+             <input type="checkbox" v-model="hasLateFee" @change="calcFine"> <label class="text-sm">มีค่าปรับล่าช้า</label>
              <input v-if="hasLateFee" type="number" v-model="lateDate" @input="calcFine" class="border p-1 w-16 text-center" placeholder="วันที่">
              <span v-if="hasLateFee" class="text-sm">-></span>
              <input v-if="hasLateFee" v-model.number="form.fine" type="number" class="border p-1 w-24 text-right font-bold text-red-600">
-             <span v-if="hasLateFee">บาท</span>
         </div>
-
         <div v-for="(item, index) in form.others" :key="index" class="flex gap-2 mb-2">
             <input v-model="item.name" placeholder="ชื่อรายการ" class="border p-2 w-2/3 rounded">
             <input v-model.number="item.price" type="number" placeholder="บาท" class="border p-2 w-1/3 rounded text-right">
         </div>
-
-        <div class="mt-6 bg-gray-800 text-white p-4 rounded text-right">
-            <h2 class="text-2xl font-bold">ยอดรวมสุทธิ: {{ grandTotal.toLocaleString() }} บาท</h2>
-        </div>
-
-        <button @click="submitData" :disabled="loading" class="mt-4 w-full bg-green-600 text-white py-3 rounded text-lg font-bold hover:bg-green-700 shadow-lg">
-            {{ loading ? 'กำลังบันทึก...' : 'บันทึกข้อมูล' }}
-        </button>
+        <div class="mt-6 bg-gray-800 text-white p-4 rounded text-right"><h2 class="text-2xl font-bold">ยอดรวมสุทธิ: {{ grandTotal.toLocaleString() }} บาท</h2></div>
+        <button @click="submitData" :disabled="loading" class="mt-4 w-full bg-green-600 text-white py-3 rounded text-lg font-bold hover:bg-green-700 shadow-lg">{{ loading ? 'กำลังบันทึก...' : 'บันทึกข้อมูล' }}</button>
     </div>
 
-    <div v-if="view === 'history'" class="bg-white p-6 rounded-lg shadow-md">
+    <div v-if="view === 'history'" class="bg-white p-6 rounded-lg shadow-md no-print">
         <h2 class="text-xl font-bold mb-4">📅 ประวัติ / พิมพ์ / ลบ</h2>
-        
         <div class="flex gap-2 mb-4">
             <input v-model="searchRoom" placeholder="ค้นหาห้อง..." class="border p-2 rounded w-1/3">
             <select v-model="searchStatus" class="border p-2 rounded w-1/3">
@@ -163,7 +142,6 @@
             </select>
             <button @click="loadHistory" class="bg-gray-200 px-4 rounded hover:bg-gray-300">Refresh</button>
         </div>
-
         <div class="overflow-x-auto">
             <table class="w-full border-collapse border text-sm">
                 <tr class="bg-gray-200">
@@ -181,112 +159,173 @@
                     <td class="border p-2">{{ item.TenantName }}</td>
                     <td class="border p-2 text-center">{{ item.Month }}/{{ item.Year }}</td>
                     <td class="border p-2 text-right">{{ Number(item.GrandTotal).toLocaleString() }}</td>
-                    <td class="border p-2 text-center">
-                        <span :class="item.Status=='ชำระแล้ว'?'text-green-600 font-bold':'text-red-600'">{{ item.Status }}</span>
-                    </td>
+                    <td class="border p-2 text-center"><span :class="item.Status=='ชำระแล้ว'?'text-green-600 font-bold':'text-red-600'">{{ item.Status }}</span></td>
                     <td class="border p-2 text-center flex flex-col gap-1">
                         <div class="flex gap-1 justify-center">
                             <button @click="printInvoice(item)" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">แจ้งหนี้</button>
                             <button v-if="item.Status=='รอชำระ'" @click="openPayment(item)" class="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600">รับเงิน</button>
                             <button v-if="item.Status=='ชำระแล้ว'" @click="printReceipt(item)" class="bg-purple-500 text-white px-2 py-1 rounded hover:bg-purple-600">ใบเสร็จ</button>
                         </div>
-                        <button @click="deleteItem(item)" class="bg-red-500 text-white px-2 py-1 rounded text-xs hover:bg-red-600 w-full">ลบรายการนี้</button>
+                        <button @click="deleteItem(item)" class="bg-red-500 text-white px-2 py-1 rounded text-xs hover:bg-red-600 w-full">ลบ</button>
                     </td>
                 </tr>
             </table>
         </div>
     </div>
 
-    <div id="printArea" class="hidden p-8 bg-white text-black">
-        <div class="border-2 border-gray-800 p-6">
-            <div class="text-center mb-6 relative">
-                <h1 class="text-3xl font-bold">ห้องพักบ้านสุขสำราญ</h1>
-                <div class="absolute right-0 top-0 border p-2 text-sm">
-                    <b>{{ docType }}</b><br>
-                    เลขที่: {{ printData.ID }}<br>
-                    วันที่: {{ printData.Date }}
+    <div id="printArea" class="hidden bg-white text-black p-4 font-sarabun">
+        
+        <div class="text-center mb-4">
+            <h1 class="text-xl font-bold">ใบแจ้งค่าเช่าห้องพักบ้านสุขสำราญ ประจำเดือน  {{ getThaiMonth(printData.Month) }}  {{ printData.Year }}</h1>
+        </div>
+
+        <div class="border border-black mb-1 print-flex">
+            <div class="print-w-half p-2 border-r border-black relative">
+                <div class="mb-1"><strong>หมายเลขห้อง :</strong> <span class="ml-2 text-lg font-bold">{{ printData.RoomNo }}</span></div>
+                <div><strong>ชื่อผู้เช่า :</strong> {{ printData.TenantName }}</div>
+            </div>
+            <div class="print-w-half p-2 relative">
+                <div class="flex justify-between mb-1">
+                    <strong>เลขที่ใบแจ้ง :</strong>
+                    <span>{{ printData.ID }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <strong>วันที่ออกใบแจ้งหนี้ :</strong>
+                    <span>{{ printData.Date }}</span>
                 </div>
             </div>
+        </div>
 
-            <div class="flex justify-between mb-4 border-b border-gray-400 pb-2">
-                <div><b>ผู้เช่า:</b> {{ printData.TenantName }} <br> <b>ห้อง:</b> {{ printData.RoomNo }}</div>
-                <div v-if="docType=='ใบแจ้งหนี้'"><b>กำหนดชำระ:</b> 05-{{ nextMonth }}-{{ printData.Year }}</div>
-                <div v-if="docType=='ใบเสร็จรับเงิน'"><b>วันที่ชำระ:</b> {{ printData.PaidDate }}</div>
+        <table class="w-full border-collapse border border-black invoice-table mb-2">
+            <thead>
+                <tr>
+                    <th style="width: 50px;">ลำดับที่</th>
+                    <th>รายการ</th>
+                    <th style="width: 100px;">จำนวน (หน่วย)</th>
+                    <th style="width: 120px;">ราคาต่อหน่วย (บาท)</th>
+                    <th style="width: 120px;">จำนวนเงิน</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="text-center">1</td>
+                    <td>ค่าเช่าห้องพัก ประจำเดือน {{ getThaiMonth(printData.Month) }} {{ printData.Year }}</td>
+                    <td class="text-center">1</td>
+                    <td class="text-right">{{ num(printData.RentPrice) }}</td>
+                    <td class="text-right">{{ num(printData.RentPrice) }}</td>
+                </tr>
+                
+                <tr>
+                    <td class="text-center">2</td>
+                    <td>
+                        <div>ค่าน้ำประปา</div>
+                        <div class="pl-8 flex justify-between text-sm"><span>เลขมิเตอร์จดครั้งก่อน</span> <span>{{ printData.WaterPrev }} หน่วย</span></div>
+                        <div class="pl-8 flex justify-between text-sm"><span>เลขมิเตอร์ปัจจุบัน</span> <span>{{ printData.WaterCurr }} หน่วย</span></div>
+                    </td>
+                    <td class="text-center flex flex-col justify-center h-full pt-6">
+                        {{ printData.WaterCurr - printData.WaterPrev }}
+                    </td>
+                    <td class="text-right pt-6">30.00</td>
+                    <td class="text-right pt-6">{{ num(printData.WaterTotal) }}</td>
+                </tr>
+
+                <tr>
+                    <td class="text-center">3</td>
+                    <td>
+                        <div>ค่าไฟฟ้า</div>
+                        <div class="pl-8 flex justify-between text-sm"><span>เลขมิเตอร์จดครั้งก่อน</span> <span>{{ printData.ElecPrev }} หน่วย</span></div>
+                        <div class="pl-8 flex justify-between text-sm"><span>เลขมิเตอร์ปัจจุบัน</span> <span>{{ printData.ElecCurr }} หน่วย</span></div>
+                    </td>
+                    <td class="text-center pt-6">
+                        {{ printData.ElecCurr - printData.ElecPrev }}
+                    </td>
+                    <td class="text-right pt-6">7.00</td>
+                    <td class="text-right pt-6">{{ num(printData.ElecTotal) }}</td>
+                </tr>
+
+                <tr v-if="printData.Fine > 0">
+                    <td class="text-center">4</td>
+                    <td>ค่าปรับชำระล่าช้า</td>
+                    <td class="text-center">-</td>
+                    <td class="text-right">-</td>
+                    <td class="text-right">{{ num(printData.Fine) }}</td>
+                </tr>
+                <tr v-if="printData.Other1_Price > 0">
+                    <td class="text-center">5</td>
+                    <td>{{ printData.Other1_Name }}</td>
+                    <td class="text-center">1</td>
+                    <td class="text-right">{{ num(printData.Other1_Price) }}</td>
+                    <td class="text-right">{{ num(printData.Other1_Price) }}</td>
+                </tr>
+                <tr class="font-bold bg-gray-100">
+                    <td colspan="2" class="text-center text-sm border-r-0">
+                        ({{ bahtText(printData.GrandTotal) }})
+                    </td>
+                    <td colspan="2" class="text-right border-l-0">จำนวนเงินรวม</td>
+                    <td class="text-right">{{ num(printData.GrandTotal) }}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="mt-4 print-flex">
+            <div style="width: 70%;">
+                <div class="text-sm font-bold mb-1">หมายเหตุ :</div>
+                <div class="text-xs pl-2 leading-relaxed">
+                    1. ชำระค่าเช่าโดยการโอนเข้าบัญชี ธนาคารกสิกรไทย หมายเลขบัญชี 008 – 3 – 72922 – 8 <br>
+                    &nbsp;&nbsp;&nbsp; ชื่อบัญชี นางเยาวนาฏ จึงรุ่งฤทธิ์ ภายในวันที่ 5 ของทุกเดือน <br>
+                    2. กรณี จ่ายล่าช้า ปรับ วันละ 100 บาท นับวันที่ 15 จะมีการงดจ่ายน้ำ-ไฟ <br>
+                    3. โอนเงินแล้ว ส่งสลิป มาในไลน์ QR Code ด้านข้าง
+                </div>
             </div>
-
-            <table class="w-full border-collapse border border-gray-800 mb-6">
-                <thead>
-                    <tr class="bg-gray-200">
-                        <th class="border border-gray-800 p-2">รายการ</th>
-                        <th class="border border-gray-800 p-2 text-right">รายละเอียด</th>
-                        <th class="border border-gray-800 p-2 text-right">จำนวนเงิน (บาท)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td class="border border-gray-800 p-2">ค่าเช่าห้องพัก</td>
-                        <td class="border border-gray-800 p-2 text-right">เดือน {{ printData.Month }}/{{ printData.Year }}</td>
-                        <td class="border border-gray-800 p-2 text-right">{{ num(printData.RentPrice) }}</td>
-                    </tr>
-                    <tr>
-                        <td class="border border-gray-800 p-2">ค่าน้ำประปา</td>
-                        <td class="border border-gray-800 p-2 text-right">เลข {{ printData.WaterPrev }} - {{ printData.WaterCurr }}</td>
-                        <td class="border border-gray-800 p-2 text-right">{{ num(printData.WaterTotal) }}</td>
-                    </tr>
-                    <tr>
-                        <td class="border border-gray-800 p-2">ค่าไฟฟ้า</td>
-                        <td class="border border-gray-800 p-2 text-right">เลข {{ printData.ElecPrev }} - {{ printData.ElecCurr }}</td>
-                        <td class="border border-gray-800 p-2 text-right">{{ num(printData.ElecTotal) }}</td>
-                    </tr>
-                    <tr v-if="printData.Fine > 0">
-                        <td class="border border-gray-800 p-2">ค่าปรับชำระล่าช้า</td>
-                        <td class="border border-gray-800 p-2 text-right"></td>
-                        <td class="border border-gray-800 p-2 text-right">{{ num(printData.Fine) }}</td>
-                    </tr>
-                    <tr v-if="printData.Other1_Price">
-                        <td class="border border-gray-800 p-2">{{ printData.Other1_Name }}</td>
-                        <td class="border border-gray-800 p-2 text-right"></td>
-                        <td class="border border-gray-800 p-2 text-right">{{ num(printData.Other1_Price) }}</td>
-                    </tr>
-                     <tr v-if="printData.Other2_Price">
-                        <td class="border border-gray-800 p-2">{{ printData.Other2_Name }}</td>
-                        <td class="border border-gray-800 p-2 text-right"></td>
-                        <td class="border border-gray-800 p-2 text-right">{{ num(printData.Other2_Price) }}</td>
-                    </tr>
-                     <tr v-if="printData.Other3_Price">
-                        <td class="border border-gray-800 p-2">{{ printData.Other3_Name }}</td>
-                        <td class="border border-gray-800 p-2 text-right"></td>
-                        <td class="border border-gray-800 p-2 text-right">{{ num(printData.Other3_Price) }}</td>
-                    </tr>
-                     <tr v-if="printData.Other4_Price">
-                        <td class="border border-gray-800 p-2">{{ printData.Other4_Name }}</td>
-                        <td class="border border-gray-800 p-2 text-right"></td>
-                        <td class="border border-gray-800 p-2 text-right">{{ num(printData.Other4_Price) }}</td>
-                    </tr>
-                </tbody>
-                <tfoot>
-                    <tr class="bg-gray-100 font-bold">
-                        <td colspan="2" class="border border-gray-800 p-2 text-right">รวมทั้งสิ้น</td>
-                        <td class="border border-gray-800 p-2 text-right">{{ num(printData.GrandTotal) }}</td>
-                    </tr>
-                </tfoot>
-            </table>
-
-            <div v-if="docType=='ใบแจ้งหนี้'" class="text-sm border p-4">
-                <b>หมายเหตุ:</b><br>
-                1. ชำระค่าเช่าโดยการโอนเข้าบัญชี ธนาคารกสิกรไทย หมายเลขบัญชี 008 – 3 – 72922 – 8 ชื่อบัญชี นางเยาวนาฏ จึงรุ่งฤทธิ์ ภายในวันที่ 5 ของทุกเดือน<br>
-                2. กรณี จ่ายล่าช้า ปรับ วันละ 100 บาท/ห้อง เกินวันที่ 15 อาจใช้สิทธิ์บอกเลิกการให้เช่า
-            </div>
-            <div v-else class="text-sm text-center mt-12">
-                ลงชื่อ ....................................................... ผู้รับเงิน<br>
-                ( {{ printData.PaidDate }} )
+            <div style="width: 30%;" class="text-center flex justify-center items-center">
+                <img src="https://via.placeholder.com/150?text=QR+Code" alt="QR Code" style="width: 100px; height: 100px; border: 1px solid #ccc;">
             </div>
         </div>
+
+    </div>
     </div>
 
-</div>
-
 <script>
+// ฟังก์ชันแปลงเงินบาทไทย (ย่อ)
+const BAHTTEXT_NUMBERS = ["ศูนย์", "หนึ่ง", "สอง", "สาม", "สี่", "ห้า", "หก", "เจ็ด", "แปด", "เก้า"];
+const BAHTTEXT_UNITS = ["", "สิบ", "ร้อย", "พัน", "หมื่น", "แสน", "ล้าน"];
+function bahtText(num) {
+    if (!num) return "";
+    num = parseFloat(num).toFixed(2);
+    let parts = num.split(".");
+    let baht = parseInt(parts[0]);
+    let satang = parseInt(parts[1]);
+    if (baht === 0 && satang === 0) return "ศูนย์บาทถ้วน";
+    
+    let text = "";
+    if (baht > 0) {
+        text += convert(baht) + "บาท";
+    }
+    if (satang > 0) {
+        text += convert(satang) + "สตางค์";
+    } else {
+        text += "ถ้วน";
+    }
+    return text;
+}
+function convert(number) {
+    let text = "";
+    let sNumber = number.toString();
+    for (let i = 0; i < sNumber.length; i++) {
+        let n = parseInt(sNumber[i]);
+        let digit = sNumber.length - i - 1;
+        if (n !== 0) {
+            if (digit === 1 && n === 1) text += "";
+            else if (digit === 1 && n === 2) text += "ยี่";
+            else if (digit === 0 && n === 1 && sNumber.length > 1) text += "เอ็ด";
+            else text += BAHTTEXT_NUMBERS[n];
+            text += BAHTTEXT_UNITS[digit];
+        } else if (digit === 1 && n === 0) { // หลักสิบเป็น 0 ไม่ต้องอ่าน
+        }
+    }
+    return text;
+}
+
 new Vue({
     el: '#app',
     data: {
@@ -301,29 +340,17 @@ new Vue({
         printData: {},
         nextMonth: '',
         form: {
-            roomNo: 1,
-            tenant: '',
-            rent: 0,
-            month: new Date().getMonth() + 1,
-            year: new Date().getFullYear() + 543,
-            waterPrev: 0,
-            waterCurr: 0,
-            waterTotal: 0,
-            elecPrev: 0,
-            elecCurr: 0,
-            elecTotal: 0,
-            fine: 0,
+            roomNo: 1, tenant: '', rent: 0,
+            month: new Date().getMonth() + 1, year: new Date().getFullYear() + 543,
+            waterPrev: 0, waterCurr: 0, waterTotal: 0,
+            elecPrev: 0, elecCurr: 0, elecTotal: 0, fine: 0,
             others: [{name:'', price:0}, {name:'', price:0}, {name:'', price:0}, {name:'', price:0}]
         }
     },
     computed: {
         othersTotal() { return this.form.others.reduce((sum, item) => sum + (item.price || 0), 0); },
         grandTotal() { 
-            return (this.form.rent || 0) + 
-                   (this.form.waterTotal || 0) + 
-                   (this.form.elecTotal || 0) + 
-                   (this.form.fine || 0) + 
-                   this.othersTotal; 
+            return (this.form.rent || 0) + (this.form.waterTotal || 0) + (this.form.elecTotal || 0) + (this.form.fine || 0) + this.othersTotal; 
         },
         filteredHistory() {
             return this.history.filter(h => 
@@ -333,14 +360,18 @@ new Vue({
         }
     },
     methods: {
-        num(n) { return Number(n).toLocaleString(); },
+        num(n) { return Number(n).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}); },
+        bahtText(n) { return bahtText(n); },
+        getThaiMonth(m) {
+            const months = ["", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+            return months[parseInt(m)] || m;
+        },
         getStandardPrice(room) {
             if (room == 1) return 4500;
             if (room >= 2 && room <= 10) return 3500;
             return 2800;
         },
         calcWater() {
-            // คำนวณอัตโนมัติ แต่ผู้ใช้แก้ทับได้
             let usage = Math.max(0, this.form.waterCurr - this.form.waterPrev);
             this.form.waterTotal = usage * 30;
         },
@@ -349,31 +380,16 @@ new Vue({
             this.form.elecTotal = usage * 7;
         },
         calcFine() {
-            if (!this.hasLateFee) {
-                this.form.fine = 0;
-            } else {
-                this.form.fine = Math.max(0, this.lateDate - 5) * 100;
-            }
+            if (!this.hasLateFee) { this.form.fine = 0; } 
+            else { this.form.fine = Math.max(0, this.lateDate - 5) * 100; }
         },
         async onRoomChange() {
-            // ตั้งค่าเช่าเริ่มต้น (แต่แก้ได้)
             this.form.rent = this.getStandardPrice(this.form.roomNo);
-            
-            // ดึงข้อมูลเก่า
             const res = await fetch(`${API_URL}?action=getLastMeter&roomNo=${this.form.roomNo}`);
             const data = await res.json();
-            
             this.form.waterPrev = data.waterPrev;
             this.form.elecPrev = data.elecPrev;
-            
-            // ดึงชื่อผู้เช่าล่าสุดมาใส่
-            if(data.tenant) {
-                this.form.tenant = data.tenant;
-            } else {
-                this.form.tenant = ""; // ถ้าไม่มีให้เคลียร์
-            }
-            
-            // Reset ค่าอื่นๆ
+            this.form.tenant = data.tenant || "";
             this.form.waterCurr = 0; this.form.waterTotal = 0;
             this.form.elecCurr = 0; this.form.elecTotal = 0;
             this.hasLateFee = false; this.calcFine();
@@ -381,20 +397,12 @@ new Vue({
         async submitData() {
             if(!confirm("ยืนยันการบันทึกข้อมูล?")) return;
             this.loading = true;
-            
             const payload = {
                 action: 'saveData',
-                roomNo: this.form.roomNo,
-                tenant: this.form.tenant,
-                month: this.form.month,
-                year: this.form.year,
-                rent: this.form.rent, // ส่งค่าเช่าที่อาจถูกแก้ไป
-                waterPrev: this.form.waterPrev,
-                waterCurr: this.form.waterCurr,
-                waterTotal: this.form.waterTotal, // ส่งยอดเงินที่อาจถูกแก้
-                elecPrev: this.form.elecPrev,
-                elecCurr: this.form.elecCurr,
-                elecTotal: this.form.elecTotal, // ส่งยอดเงินที่อาจถูกแก้
+                roomNo: this.form.roomNo, tenant: this.form.tenant,
+                month: this.form.month, year: this.form.year, rent: this.form.rent,
+                waterPrev: this.form.waterPrev, waterCurr: this.form.waterCurr, waterTotal: this.form.waterTotal,
+                elecPrev: this.form.elecPrev, elecCurr: this.form.elecCurr, elecTotal: this.form.elecTotal,
                 fine: this.form.fine,
                 o1n: this.form.others[0].name, o1p: this.form.others[0].price,
                 o2n: this.form.others[1].name, o2p: this.form.others[1].price,
@@ -402,7 +410,6 @@ new Vue({
                 o4n: this.form.others[3].name, o4p: this.form.others[3].price,
                 grandTotal: this.grandTotal
             };
-
             await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
             alert("บันทึกเรียบร้อย!");
             this.loading = false;
@@ -415,38 +422,23 @@ new Vue({
             this.history.reverse();
         },
         async deleteItem(item) {
-            if(!confirm(`⚠️ ต้องการลบใบแจ้งหนี้ของห้อง ${item.RoomNo} เดือน ${item.Month} ใช่หรือไม่? \n(การกระทำนี้ย้อนกลับไม่ได้)`)) return;
-            
-            await fetch(API_URL, {
-                method: 'POST',
-                body: JSON.stringify({ action: 'deleteData', id: item.ID })
-            });
-            
+            if(!confirm(`⚠️ ต้องการลบใบแจ้งหนี้ของห้อง ${item.RoomNo} เดือน ${item.Month} ใช่หรือไม่?`)) return;
+            await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'deleteData', id: item.ID }) });
             alert("ลบข้อมูลเรียบร้อย");
             this.loadHistory();
         },
         printInvoice(item) {
             this.docType = "ใบแจ้งหนี้";
             this.printData = item;
-            
             const d = new Date(item.Timestamp);
             this.printData.Date = `${d.getDate()}-${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getFullYear()+543}`;
-            
-            let m = parseInt(item.Month);
-            let nextM = m + 1;
-            if (nextM > 12) nextM = 1;
-            this.nextMonth = nextM.toString().padStart(2,'0');
-
             setTimeout(() => window.print(), 500);
         },
         async openPayment(item) {
-            const date = prompt("กรุณาระบุวันที่ชำระเงิน (dd-mm-yyyy)", new Date().toLocaleDateString('th-TH'));
+            const date = prompt("ระบุวันที่ชำระเงิน (dd-mm-yyyy)", new Date().toLocaleDateString('th-TH'));
             if (date) {
-                await fetch(API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'updatePayment', id: item.ID, paidDate: date })
-                });
-                alert("บันทึกการชำระเงินแล้ว");
+                await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'updatePayment', id: item.ID, paidDate: date }) });
+                alert("บันทึกแล้ว");
                 this.loadHistory();
             }
         },
@@ -457,9 +449,7 @@ new Vue({
             setTimeout(() => window.print(), 500);
         }
     },
-    mounted() {
-        this.onRoomChange();
-    }
+    mounted() { this.onRoomChange(); }
 });
 </script>
 </body>
