@@ -10,10 +10,31 @@
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;700&display=swap');
         body { font-family: 'Sarabun', sans-serif; background-color: #f3f4f6; }
         
+        /* Print Style สำหรับ PDF */
         @media print {
-            body * { visibility: hidden; }
-            #printArea, #printArea * { visibility: visible; }
-            #printArea { position: absolute; left: 0; top: 0; width: 100%; }
+            /* ซ่อนทุกอย่างใน Body */
+            body * {
+                visibility: hidden;
+            }
+            
+            /* บังคับให้พื้นที่พิมพ์ แสดงผลขึ้นมา และมองเห็นได้ */
+            #printArea, #printArea * {
+                visibility: visible !important;
+                display: block !important; /* บรรทัดนี้สำคัญมาก เพื่อแก้ class hidden */
+            }
+            
+            /* จัดตำแหน่งให้พอดีกระดาษ */
+            #printArea {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 0;
+                background-color: white;
+            }
+            
+            /* ซ่อนปุ่มต่างๆ หรือส่วนที่ไม่ต้องการ */
             .no-print { display: none !important; }
         }
     </style>
