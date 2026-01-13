@@ -13,33 +13,16 @@
         .status-paid { background-color: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 9999px; font-size: 12px; font-weight: bold; }
         .status-pending { background-color: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 9999px; font-size: 12px; font-weight: bold; }
 
-        /* CSS สำหรับการพิมพ์ */
         @media print {
             @page { margin: 0.5cm; size: A4 portrait; }
-            body * { visibility: hidden; } /* ซ่อนทุกอย่างก่อน */
-            
-            #printArea, #printArea * { 
-                visibility: visible !important; 
-                display: block !important; 
-                color: black !important; /* บังคับสีดำ */
-            }
-            
-            #printArea {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                background-color: white;
-                z-index: 9999;
-            }
-            
+            body * { visibility: hidden; }
+            #printArea, #printArea * { visibility: visible !important; display: block !important; color: black !important; }
+            #printArea { position: absolute; left: 0; top: 0; width: 100%; background-color: white; z-index: 9999; }
             .no-print { display: none !important; }
-            
             table { border-collapse: collapse !important; width: 100% !important; }
             th, td { border: 1px solid black !important; padding: 8px !important; }
             .no-border-print td { border: none !important; }
         }
-
         .invoice-table th { border: 1px solid #000; background: #f2f2f2; }
         .invoice-table td { border: 1px solid #000; }
     </style>
@@ -48,7 +31,6 @@
 
 <div id="app" class="container mx-auto p-4 max-w-6xl">
     <script>
-        // API URL เดิมของคุณ
         const API_URL = "https://script.google.com/macros/s/AKfycbxjFpIKybqZ-MuNnPPQxKBcpmupHbiPM_W7fhyGPSWyvupYts8o3qJ1JBA6duWp6wSl/exec"; 
     </script>
 
@@ -65,9 +47,7 @@
     </nav>
 
     <div v-if="loading" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 no-print">
-        <div class="bg-white p-6 rounded-lg shadow-xl">
-            <p class="text-xl font-bold animate-pulse">⏳ กำลังประมวลผล...</p>
-        </div>
+        <div class="bg-white p-6 rounded-lg shadow-xl"><p class="text-xl font-bold animate-pulse">⏳ กำลังประมวลผล...</p></div>
     </div>
 
     <div v-if="view === 'form'" class="bg-white p-8 rounded-2xl shadow-sm border no-print">
@@ -89,8 +69,8 @@
                 </select>
             </div>
             <div class="bg-slate-50 p-3 rounded-lg md:col-span-2">
-                <label class="block font-bold text-sm mb-1">ชื่อผู้เช่า</label>
-                <input v-model="form.tenant" class="w-full border p-2 rounded text-lg">
+                <label class="block font-bold text-sm mb-1">ชื่อผู้เช่า (แก้ไขได้)</label>
+                <input v-model="form.tenant" class="w-full border p-2 rounded text-lg bg-yellow-50">
             </div>
         </div>
 
@@ -98,18 +78,27 @@
             <div class="border-2 border-blue-100 rounded-xl p-5 bg-blue-50/30">
                 <h3 class="font-bold text-blue-700 mb-4 flex justify-between">💧 ค่าน้ำ <span>หน่วยละ 30.-</span></h3>
                 <div class="grid grid-cols-2 gap-4 text-center">
-                    <div><p class="text-xs text-slate-500">เลขเดิม</p><p class="text-xl font-mono bg-white border p-2 rounded">{{ form.waterPrev }}</p></div>
-                    <div><p class="text-xs text-blue-600 font-bold">เลขครั้งนี้</p>
+                    <div>
+                        <p class="text-xs text-slate-500 mb-1">เลขเดิม (แก้ไขได้)</p>
+                        <input v-model.number="form.waterPrev" @input="calcWater" type="number" class="w-full border p-2 rounded text-center text-xl font-mono bg-white text-gray-600">
+                    </div>
+                    <div>
+                        <p class="text-xs text-blue-600 font-bold mb-1">เลขครั้งนี้</p>
                         <input v-model.number="form.waterCurr" @input="calcWater" type="number" class="w-full border-2 border-blue-400 p-2 rounded text-center text-xl font-mono">
                     </div>
                 </div>
                 <p class="text-right mt-2 text-sm text-blue-600">รวม: {{ num(form.waterTotal) }} บาท</p>
             </div>
+
             <div class="border-2 border-amber-100 rounded-xl p-5 bg-amber-50/30">
                 <h3 class="font-bold text-amber-700 mb-4 flex justify-between">⚡ ค่าไฟ <span>หน่วยละ 7.-</span></h3>
                 <div class="grid grid-cols-2 gap-4 text-center">
-                    <div><p class="text-xs text-slate-500">เลขเดิม</p><p class="text-xl font-mono bg-white border p-2 rounded">{{ form.elecPrev }}</p></div>
-                    <div><p class="text-xs text-amber-600 font-bold">เลขครั้งนี้</p>
+                    <div>
+                        <p class="text-xs text-slate-500 mb-1">เลขเดิม (แก้ไขได้)</p>
+                        <input v-model.number="form.elecPrev" @input="calcElec" type="number" class="w-full border p-2 rounded text-center text-xl font-mono bg-white text-gray-600">
+                    </div>
+                    <div>
+                        <p class="text-xs text-amber-600 font-bold mb-1">เลขครั้งนี้</p>
                         <input v-model.number="form.elecCurr" @input="calcElec" type="number" class="w-full border-2 border-amber-400 p-2 rounded text-center text-xl font-mono">
                     </div>
                 </div>
@@ -180,9 +169,7 @@
                 </tbody>
             </table>
         </div>
-        <div class="mt-4 text-sm text-gray-500">
-            * ยอดเงินแสดงเป็นหน่วยพันบาท (เช่น 4.5k = 4,500)
-        </div>
+        <div class="mt-4 text-sm text-gray-500">* ยอดเงินแสดงเป็นหน่วยพันบาท (เช่น 4.5k = 4,500)</div>
     </div>
 
     <div id="printArea" class="hidden">
@@ -206,107 +193,70 @@
 
             <table class="w-full invoice-table text-lg mb-8">
                 <thead class="text-center bg-gray-200">
-                    <tr>
-                        <th width="40%" class="p-3">รายการ</th>
-                        <th width="15%" class="p-3">จำนวน/หน่วย</th>
-                        <th width="20%" class="p-3">ราคา/หน่วย</th>
-                        <th width="25%" class="p-3">จำนวนเงิน</th>
-                    </tr>
+                    <tr><th width="40%" class="p-3">รายการ</th><th width="15%" class="p-3">จำนวน/หน่วย</th><th width="20%" class="p-3">ราคา/หน่วย</th><th width="25%" class="p-3">จำนวนเงิน</th></tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td class="p-3">ค่าเช่าห้องพัก</td>
-                        <td class="text-center p-3">1</td>
-                        <td class="text-right p-3">{{ num(printData.RentPrice) }}</td>
-                        <td class="text-right p-3 font-bold">{{ num(printData.RentPrice) }}</td>
-                    </tr>
-                    <tr>
-                        <td class="p-3">
-                            ค่าน้ำประปา <br>
-                            <span class="text-sm text-gray-600">(เลขมิเตอร์ {{ printData.WaterPrev }} - {{ printData.WaterCurr }})</span>
-                        </td>
-                        <td class="text-center p-3">{{ printData.WaterCurr - printData.WaterPrev }}</td>
-                        <td class="text-right p-3">30.00</td>
-                        <td class="text-right p-3 font-bold">{{ num(printData.WaterTotal) }}</td>
-                    </tr>
-                    <tr>
-                        <td class="p-3">
-                            ค่าไฟฟ้า <br>
-                            <span class="text-sm text-gray-600">(เลขมิเตอร์ {{ printData.ElecPrev }} - {{ printData.ElecCurr }})</span>
-                        </td>
-                        <td class="text-center p-3">{{ printData.ElecCurr - printData.ElecPrev }}</td>
-                        <td class="text-right p-3">7.00</td>
-                        <td class="text-right p-3 font-bold">{{ num(printData.ElecTotal) }}</td>
-                    </tr>
-                    <tr v-if="printData.Fine > 0">
-                        <td class="p-3 text-red-600">ค่าปรับชำระล่าช้า</td>
-                        <td class="text-center p-3">-</td>
-                        <td class="text-right p-3">-</td>
-                        <td class="text-right p-3 font-bold text-red-600">{{ num(printData.Fine) }}</td>
-                    </tr>
-                    <tr class="font-bold bg-gray-100">
-                        <td colspan="3" class="text-right p-4 text-xl">จำนวนเงินรวมทั้งสิ้น</td>
-                        <td class="text-right p-4 text-2xl underline">{{ num(printData.GrandTotal) }}</td>
-                    </tr>
+                    <tr><td class="p-3">ค่าเช่าห้องพัก</td><td class="text-center p-3">1</td><td class="text-right p-3">{{ num(printData.RentPrice) }}</td><td class="text-right p-3 font-bold">{{ num(printData.RentPrice) }}</td></tr>
+                    <tr><td class="p-3">ค่าน้ำประปา <br><span class="text-sm text-gray-600">(เลขมิเตอร์ {{ printData.WaterPrev }} - {{ printData.WaterCurr }})</span></td><td class="text-center p-3">{{ printData.WaterCurr - printData.WaterPrev }}</td><td class="text-right p-3">30.00</td><td class="text-right p-3 font-bold">{{ num(printData.WaterTotal) }}</td></tr>
+                    <tr><td class="p-3">ค่าไฟฟ้า <br><span class="text-sm text-gray-600">(เลขมิเตอร์ {{ printData.ElecPrev }} - {{ printData.ElecCurr }})</span></td><td class="text-center p-3">{{ printData.ElecCurr - printData.ElecPrev }}</td><td class="text-right p-3">7.00</td><td class="text-right p-3 font-bold">{{ num(printData.ElecTotal) }}</td></tr>
+                    <tr v-if="printData.Fine > 0"><td class="p-3 text-red-600">ค่าปรับชำระล่าช้า</td><td class="text-center p-3">-</td><td class="text-right p-3">-</td><td class="text-right p-3 font-bold text-red-600">{{ num(printData.Fine) }}</td></tr>
+                    <tr class="font-bold bg-gray-100"><td colspan="3" class="text-right p-4 text-xl">จำนวนเงินรวมทั้งสิ้น</td><td class="text-right p-4 text-2xl underline">{{ num(printData.GrandTotal) }}</td></tr>
                 </tbody>
             </table>
 
-            <div class="mt-6 p-3 border-2 border-black text-center text-xl font-bold bg-gray-50">
-                ( {{ bahtText(printData.GrandTotal) }} )
-            </div>
+            <div class="mt-6 p-3 border-2 border-black text-center text-xl font-bold bg-gray-50">( {{ bahtText(printData.GrandTotal) }} )</div>
 
             <div v-if="docType === 'ใบแจ้งหนี้'" class="mt-8 text-base border-t pt-4">
                 <p class="font-bold underline mb-2">หมายเหตุการชำระเงิน :</p>
                 <div class="ml-4">
-                    <p>1. โอนเงินผ่าน <strong>ธนาคารกสิกรไทย</strong></p>
-                    <p>   เลขที่บัญชี: <strong>008 - 3 - 72922 - 8</strong></p>
-                    <p>   ชื่อบัญชี: <strong>นางเยาวนาฏ จึงรุ่งฤทธิ์</strong></p>
+                    <p>1. โอนเงินผ่าน <strong>ธนาคารกสิกรไทย</strong> เลขที่บัญชี: <strong>008 - 3 - 72922 - 8</strong> ชื่อบัญชี: <strong>นางเยาวนาฏ จึงรุ่งฤทธิ์</strong></p>
                     <p class="mt-2 text-red-600">2. กรุณาชำระภายในวันที่ 5 ของทุกเดือน (หากชำระล่าช้ามีค่าปรับวันละ 100 บาท)</p>
                 </div>
             </div>
 
             <div v-if="docType === 'ใบเสร็จรับเงิน'" class="mt-24 flex justify-between px-10">
-                <div class="text-center">
-                    <p>.......................................................</p>
-                    <p class="mt-2">ผู้จ่ายเงิน</p>
-                </div>
-                <div class="text-center">
-                    <p>.......................................................</p>
-                    <p class="mt-2">( นางเยาวนาฏ จึงรุ่งฤทธิ์ )</p>
-                    <p>ผู้รับเงิน</p>
-                </div>
+                <div class="text-center"><p>.......................................................</p><p class="mt-2">ผู้จ่ายเงิน</p></div>
+                <div class="text-center"><p>.......................................................</p><p class="mt-2">( นางเยาวนาฏ จึงรุ่งฤทธิ์ )</p><p>ผู้รับเงิน</p></div>
             </div>
         </div>
     </div>
 </div>
 
 <script>
+// ข้อมูลผู้เช่าตามห้อง
+const tenantsList = {
+    1: "นางสาวกิ่งกาญจน์ สล่าคำ",
+    2: "นางสาวนันทกาล ทุ่มโมง",
+    3: "นายวัชรินทร์ โพติยะ",
+    4: "บริษัท รอยัล โกลด์ เกรท อินเตอร์เนชั่นเนล จำกัด",
+    5: "นางสาวพัชราภรณ์ น้อยคำดี",
+    6: "นางสาวอนงค์ บุรัสการ",
+    7: "บริษัท รอยัล โกลด์ เกรท อินเตอร์เนชั่นเนล จำกัด",
+    8: "บริษัท รอยัล โกลด์ เกรท อินเตอร์เนชั่นเนล จำกัด",
+    9: "บริษัท รอยัล โกลด์ เกรท อินเตอร์เนชั่นเนล จำกัด",
+    10: "นางสาวกนกพร ส่งเสริม",
+    11: "บริษัท รอยัล โกลด์ เกรท อินเตอร์เนชั่นเนล จำกัด",
+    12: "บริษัท รอยัล โกลด์ เกรท อินเตอร์เนชั่นเนล จำกัด",
+    13: "บริษัท รอยัล โกลด์ เกรท อินเตอร์เนชั่นเนล จำกัด",
+    14: "บริษัท รอยัล โกลด์ เกรท อินเตอร์เนชั่นเนล จำกัด",
+    15: "บริษัท รอยัล โกลด์ เกรท อินเตอร์เนชั่นเนล จำกัด",
+    16: "บริษัท รอยัล โกลด์ เกรท อินเตอร์เนชั่นเนล จำกัด",
+    17: "บริษัท รอยัล โกลด์ เกรท อินเตอร์เนชั่นเนล จำกัด",
+    18: "บริษัท รอยัล โกลด์ เกรท อินเตอร์เนชั่นเนล จำกัด",
+    19: "บริษัท รอยัล โกลด์ เกรท อินเตอร์เนชั่นเนล จำกัด",
+    20: "บริษัท รอยัล โกลด์ เกรท อินเตอร์เนชั่นเนล จำกัด"
+};
+
 new Vue({
     el: '#app',
     data: {
-        view: 'form', 
-        loading: false, 
-        history: [], 
-        searchRoom: '', 
-        docType: '', 
-        printData: { Month: 1, Year: 2568, GrandTotal: 0 }, // Init default to prevent error
+        view: 'form', loading: false, history: [], searchRoom: '', docType: '', 
+        printData: { Month: 1, Year: 2568, GrandTotal: 0 },
         thaiMonths: ["", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"],
-        form: { 
-            day: new Date().getDate(),
-            month: new Date().getMonth() + 1,
-            year: new Date().getFullYear() + 543,
-            roomNo: 1, 
-            tenant: '', 
-            rent: 0, 
-            waterPrev: 0, waterCurr: 0, waterTotal: 0, 
-            elecPrev: 0, elecCurr: 0, elecTotal: 0, 
-            fine: 0 
-        }
+        form: { day: new Date().getDate(), month: new Date().getMonth() + 1, year: new Date().getFullYear() + 543, roomNo: 1, tenant: '', rent: 0, waterPrev: 0, waterCurr: 0, waterTotal: 0, elecPrev: 0, elecCurr: 0, elecTotal: 0, fine: 0 }
     },
     computed: {
-        filteredHistory() {
-            return this.history.filter(h => !this.searchRoom || h.RoomNo.toString() === this.searchRoom);
-        },
+        filteredHistory() { return this.history.filter(h => !this.searchRoom || h.RoomNo.toString() === this.searchRoom); },
         summaryTable() {
             let table = {};
             this.history.forEach(h => {
@@ -319,70 +269,64 @@ new Vue({
     },
     methods: {
         num(n) { return Number(n || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}); },
-        
         bahtText(num) {
             if (!num) return "ศูนย์บาทถ้วน";
             num = parseFloat(num).toFixed(2);
             let [baht, satang] = num.split(".");
             const nums = ["ศูนย์", "หนึ่ง", "สอง", "สาม", "สี่", "ห้า", "หก", "เจ็ด", "แปด", "เก้า"];
             const units = ["", "สิบ", "ร้อย", "พัน", "หมื่น", "แสน", "ล้าน"];
-
             function convert(nStr) {
                 let res = "";
                 for (let i = 0; i < nStr.length; i++) {
                     let digit = parseInt(nStr[i]);
                     let pos = nStr.length - i - 1;
                     if (digit !== 0) {
-                        if (pos === 1 && digit === 1) res += "";
-                        else if (pos === 1 && digit === 2) res += "ยี่";
-                        else if (pos === 0 && digit === 1 && nStr.length > 1) res += "เอ็ด";
-                        else res += nums[digit];
+                        if (pos === 1 && digit === 1) res += ""; else if (pos === 1 && digit === 2) res += "ยี่"; else if (pos === 0 && digit === 1 && nStr.length > 1) res += "เอ็ด"; else res += nums[digit];
                         res += units[pos];
                     }
                 }
                 return res;
             }
-
             let text = convert(baht) + "บาท";
-            if (satang == "00") {
-                text += "ถ้วน";
-            } else {
-                text += convert(satang) + "สตางค์";
-            }
+            text += satang == "00" ? "ถ้วน" : convert(satang) + "สตางค์";
             return text;
         },
-
         calcWater() { this.form.waterTotal = Math.max(0, this.form.waterCurr - this.form.waterPrev) * 30; },
         calcElec() { this.form.elecTotal = Math.max(0, this.form.elecCurr - this.form.elecPrev) * 7; },
-        
         async onRoomChange() {
             this.loading = true;
             this.form.rent = this.form.roomNo == 1 ? 4500 : (this.form.roomNo <= 10 ? 3500 : 2800);
+            
+            // 1. ดึงชื่อผู้เช่าจากรายการที่กำหนดไว้
+            this.form.tenant = tenantsList[this.form.roomNo] || "";
+
             try {
+                // 2. ดึงเลขมิเตอร์เก่า
                 const res = await fetch(`${API_URL}?action=getLastMeter&roomNo=${this.form.roomNo}`);
                 const data = await res.json();
+                
+                // ถ้า API มีข้อมูล ให้ใช้ข้อมูล API, ถ้าไม่มีให้เป็น 0
                 this.form.waterPrev = data.waterPrev || 0;
                 this.form.elecPrev = data.elecPrev || 0;
-                this.form.tenant = data.tenant || "";
-                this.form.waterCurr = this.form.waterPrev; // เริ่มต้นด้วยเลขเก่า
+                
+                // เริ่มต้นเลขใหม่ด้วยเลขเก่า เพื่อความสะดวก
+                this.form.waterCurr = this.form.waterPrev;
                 this.form.elecCurr = this.form.elecPrev;
+                
                 this.calcWater(); this.calcElec();
             } catch(e) { console.error(e); }
             this.loading = false;
         },
-
         async submitData() {
             this.loading = true;
             try {
                 const total = this.form.rent + this.form.waterTotal + this.form.elecTotal + this.form.fine;
-                // ส่ง form.day, form.month, form.year ไปด้วย
                 await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveData', ...this.form, grandTotal: total }) });
                 alert("บันทึกข้อมูลเรียบร้อย ✅");
                 this.loadHistory();
             } catch(e) { alert("เกิดข้อผิดพลาด ❌"); }
             this.loading = false;
         },
-
         async loadHistory() {
             this.loading = true;
             try {
@@ -391,44 +335,28 @@ new Vue({
             } catch(e) {}
             this.loading = false;
         },
-
         printInvoice(item) {
-            this.docType = 'ใบแจ้งหนี้';
-            this.printData = item;
-            // ตั้งวันที่ใบแจ้งหนี้เป็นวันที่จดบันทึก หรือวันนี้ก็ได้
+            this.docType = 'ใบแจ้งหนี้'; this.printData = item;
             this.printData.Date = `${this.form.day}/${this.form.month}/${this.form.year}`; 
-            
-            // ใช้ nextTick เพื่อรอให้ข้อมูลเรนเดอร์ลง DOM ก่อนสั่งพิมพ์
-            this.$nextTick(() => {
-                setTimeout(() => window.print(), 500);
-            });
+            this.$nextTick(() => { setTimeout(() => window.print(), 500); });
         },
-
         printReceipt(item) {
-            this.docType = 'ใบเสร็จรับเงิน';
-            this.printData = item;
-            
-            this.$nextTick(() => {
-                setTimeout(() => window.print(), 500);
-            });
+            this.docType = 'ใบเสร็จรับเงิน'; this.printData = item;
+            this.$nextTick(() => { setTimeout(() => window.print(), 500); });
         },
-
         async openPayment(item) {
-            const date = prompt("ระบุวันที่รับเงิน (เช่น 5/9/2568)", `${new Date().getDate()}/${new Date().getMonth()+1}/${new Date().getFullYear()+543}`);
+            const date = prompt("ระบุวันที่รับเงิน", `${new Date().getDate()}/${new Date().getMonth()+1}/${new Date().getFullYear()+543}`);
             if(date) {
                 this.loading = true;
                 await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'updatePayment', id: item.ID, paidDate: date }) });
-                this.loadHistory();
-                this.loading = false;
+                this.loadHistory(); this.loading = false;
             }
         },
-
         async deleteItem(item) {
             if(confirm("ยืนยันลบข้อมูลนี้?")) {
                 this.loading = true;
                 await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'deleteData', id: item.ID }) });
-                this.loadHistory();
-                this.loading = false;
+                this.loadHistory(); this.loading = false;
             }
         }
     },
