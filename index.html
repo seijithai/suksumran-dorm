@@ -13,16 +13,12 @@
         .status-paid { background-color: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 9999px; font-size: 12px; font-weight: bold; }
         .status-pending { background-color: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 9999px; font-size: 12px; font-weight: bold; }
 
-        @media print {
-            @page { margin: 1cm; size: A4 portrait; }
-            body * { visibility: hidden; }
-            #printArea, #printArea * { visibility: visible !important; display: block !important; }
-            #printArea { position: absolute; left: 0; top: 0; width: 100%; color: black; background: white; }
-            .no-print { display: none !important; }
-            table { border-collapse: collapse !important; width: 100% !important; }
-            th, td { border: 1px solid black !important; padding: 8px !important; }
-            .no-border-print td { border: none !important; }
-        }
+       @media print {
+    #printArea, #printArea * { 
+        visibility: visible !important; 
+        display: block !important; 
+    }
+}
         .invoice-table th { border: 1px solid #000; background: #f2f2f2; }
         .invoice-table td { border: 1px solid #000; }
     </style>
